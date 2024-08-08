@@ -3,6 +3,7 @@
     <h1 class="download" @click="changeStep">Home</h1>
     <h1>SVG File Uploaded</h1>
     <div class="svgContainerStyle" ref="imageContainer"></div>
+    <img v-if="imageSrc" :src="imageSrc" alt="SVG Image" />
     <div class="jsonContainer">
       <div class="jsonHeader">Style JSON</div><small class="download" @click="downloadJSON">DOWNLOAD</small>
     </div>
@@ -20,7 +21,6 @@
 </template>
 
 <script>
-import { ref, nextTick  } from 'vue';
 import { checkIfValidJSON } from '../utils/functions.js'
 export default {
     props: ['svg'],
@@ -30,6 +30,7 @@ export default {
           newJson: [],
           svgJsonText: '',
           initialStyles: [],
+          imageSrc: ''
         }
     },
     methods: {
@@ -40,13 +41,13 @@ export default {
           var blob = new Blob([this.svg], {
             type: 'image/svg+xml'
           });
+          this.imageSrc = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(this.svg)}`;
           let url = URL.createObjectURL(blob);
           let image = document.createElement('img');
           image.src = url;
           const imgElement = document.createElement('img');
           imgElement.src = image.src;
           imgElement.alt = 'Uploaded SVG';
-
           // Append the image to the container
           this.$refs.imageContainer.appendChild(imgElement);
           image.addEventListener('load', () => URL.revokeObjectURL(url), {once: true});
@@ -56,35 +57,6 @@ export default {
          }
        },
 
-      getSvgStyles(svgElement) {
-          document.body.appendChild(svgElement);
-
-          const computedStyles = window.getComputedStyle(svgElement);
-
-          const fill = computedStyles.getPropertyValue('fill');
-          const stroke = computedStyles.getPropertyValue('stroke');
-          const transform = computedStyles.getPropertyValue('transform');
-
-          console.log('Fill:', fill);
-          console.log('Stroke:', stroke);
-          console.log('Transform:', transform);
-
-          document.body.removeChild(svgElement);
-        },
-
-       blobToSvg(blob, callback) {
-        const reader = new FileReader();
-
-        reader.onload = function(event) {
-          const parser = new DOMParser();
-          const svgDoc = parser.parseFromString(event.target.result, 'image/svg+xml');
-          const svgElement = svgDoc.documentElement;
-
-          callback(svgElement);
-        };
-
-        reader.readAsText(blob);
-      },
        downloadJSON() {
           const blob = new Blob([this.svgJsonText], { type: 'application/json' });
           const link = document.createElement('a');
@@ -97,10 +69,8 @@ export default {
           document.body.removeChild(link);
        },
        extractStylesFromSVG() {
-        
         const svgElement = this.$refs.imageContainer;
         
-        this.getComputedStyles();
         this.initialStyles = window.getComputedStyle(svgElement);
         const styleEntries = {};
         for (let i = 0; i < this.initialStyles.length; i++) {
@@ -109,7 +79,6 @@ export default {
         }
         this.svgJson = styleEntries;
         this.svgJsonText = JSON.stringify(computedStyles);
-        console.log('hereeeeeeeeeeeeeeeeeeeeeeeee')
         
        },
 

@@ -33,10 +33,7 @@ export default {
             alert('Please upload an image file.');
             return;
          }
-         //web animation API get computed stylerd
-         this.blobToSvg(this.file, (svgElement) => {
-          this.getSvgStyles(svgElement);
-        });
+         //web animation API get computed style
           const reader = new FileReader();
           reader.onload = (e) => {
             this.svgContent = DOMPurify.sanitize(e.target.result, { USE_PROFILES: { svg: true, svgFilters: true } });
@@ -48,35 +45,6 @@ export default {
             return;
          }
          
-      },
-      getSvgStyles(svgElement) {
-          document.body.appendChild(svgElement);
-          console.log(svgElement)
-          const computedStyles = window.getComputedStyle(svgElement);
-
-          const fill = computedStyles.getPropertyValue('fill');
-          const stroke = computedStyles.getPropertyValue('stroke');
-          const transform = computedStyles.getPropertyValue('transform');
-
-          console.log('Fill:', fill);
-          console.log('Stroke:', stroke);
-          console.log('Transform:', transform);
-
-          document.body.removeChild(svgElement);
-        },
-
-       blobToSvg(blob, callback) {
-        const reader = new FileReader();
-
-        reader.onload = function(event) {
-          const parser = new DOMParser();
-          const svgDoc = parser.parseFromString(event.target.result, 'image/svg+xml');
-          const svgElement = svgDoc.documentElement;
-
-          callback(svgElement);
-        };
-
-        reader.readAsText(blob);
       },
       changeStep(svg){
         this.$emit("nextStep", ["Step2", svg]);
