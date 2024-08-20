@@ -1,9 +1,9 @@
 <template>
   <div class="container">
     <h1 class="download" @click="changeStep">Home</h1>
-    <h1>SVG File Uploaded</h1>
-    <div class="svgContainerStyle" ref="imageContainer"></div>
-    <img v-if="imageSrc" :src="imageSrc" ref="imageTag" alt="SVG Image" />
+    <h1 id="topText">SVG File Uploaded</h1>
+    <div class="svgContainerStyle" ref="objectContainer" id="tst"></div>
+    <div id="svgContainer"></div>
     <div class="jsonContainer">
       <div class="jsonHeader">Style JSON</div><small class="download" @click="downloadJSON">DOWNLOAD</small>
     </div>
@@ -11,6 +11,7 @@
     <div class="jsonContainer">
       <div class="jsonHeader">Upload new JSON</div>
     </div>
+    
     <input
       type="file"
       @change="jsonUpload($event)"
@@ -21,7 +22,7 @@
 </template>
 
 <script>
-import { checkIfValidJSON, encodeToBase64, decodeBase64 } from '../utils/functions.js'
+import { checkIfValidJSON } from '../utils/functions.js'
 export default {
     props: ['svg'],
     data() {
@@ -36,42 +37,122 @@ export default {
     },
     methods: {
       async loadSVG() {
-        //
-         try {
-          //add svg as image to prevent css overwriting
-          //first type with image blob
-          this.blob = new Blob([this.svg], {
-            type: 'image/svg+xml'
+            // SVG data as a data URI
+            const objectData = 'data:image/svg+xml;charset=utf8,' + encodeURIComponent(this.svg);
+
+            // Create the <object> element
+            const objectElement = document.createElement('object');
+            objectElement.id = 'test-object';
+            objectElement.type = 'image/svg+xml';
+            objectElement.data = objectData;
+            
+            // Append the <object> to the container
+            this.$refs.objectContainer.appendChild(objectElement);
+            // objectElement.onload = function() {
+            //   const SVGObject = document.getElementById('test-object')
+            //   const SVGDocument = SVGObject.contentDocument;
+            //   console.log(SVGDocument)
+            //   console.log('beeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee')
+            // }
+
+            objectElement.addEventListener('load', function() {
+                // Access the SVG document within the object
+                const svgDoc = objectElement.contentDocument;
+                console.log(svgDoc)
+                // Access an element inside the SVG (for example, a rectangle)
+            });
+            
+
+
+            const element = document.getElementById('test-object');
+            // Modify animations using Web Animations API
+            element.animate([
+              {
+                transform: 'translateY(0)',
+                backgroundColor: 'red'
+              },
+              {
+                transform: 'translateY(450px)',
+                backgroundColor: 'blue'
+              }],
+              {
+                duration: 1000,
+                iterations: Infinity,
+                direction: 'alternate'
+              }  
+            )
+
+
+      // Access and log SVG content
+      // Create a container to hold the SVG
+      const container = document.getElementById('svgContainer');
+      container.innerHTML = this.svg;
+      const svgElement = container.querySelector('svg');
+// content docuyment always empty
+
+
+                  document.getAnimations().forEach((animation) => {
+  // animation.playbackRate *= 100;
+});
+      if (svgElement) {
+        this.extractAndModifyAnimations(svgElement);
+      } else {
+        console.log('SVG element not found in container.');
+      }
+      },
+
+      extractAndModifyAnimations(svgElement) {
+        // const svgElement = document.getElementById('SVGElement');
+        const animatedElements = svgElement.querySelectorAll('*');
+        if (animatedElements.length === 0) {
+          console.log('No animated elements found.');
+        }
+        //////// const svgDoc = objectElement.contentDocument; ALWAYS EMPTYH
+        const animationsArray = [];
+
+        animatedElements.forEach(element => {
+          const animations = element.getAnimations();
+          animations.forEach(animation => {
+            animationsArray.push({
+              element: element.tagName,
+              animation: {
+                animationName: animation.animationName,
+                duration: animation.effect.duration,
+                delay: animation.effect.delay,
+                iterationCount: animation.effect.iterationCount,
+                direction: animation.effect.direction,
+                fillMode: animation.effect.fillMode,
+                easing: animation.effect.easing,
+                playbackRate: animation.playbackRate,
+                startTime: animation.startTime,
+                currentTime: animation.currentTime
+              }
+            });
+            element.animate([
+              {
+                transform: 'translateY(0)',
+                backgroundColor: 'red'
+              },
+              {
+                transform: 'translateY(450px)',
+                backgroundColor: 'blue'
+              }],
+              {
+                duration: 1000,
+                iterations: Infinity,
+                direction: 'alternate'
+              }  
+            )
+            
           });
-          let url = URL.createObjectURL(this.blob);
-          let image = document.createElement('img');
-          image.src = url;
-          const imgElement = document.createElement('img');
-          imgElement.src = image.src;
-          imgElement.alt = 'Uploaded SVG';
-          //extract styles from BLOB
-          this.fetchAndExtractStylesFromBlobUrl(url);;
-
-          // Append the image to the container
-          this.$refs.imageContainer.appendChild(imgElement);
-          image.addEventListener('load', () => URL.revokeObjectURL(url), {once: true});
-
-
-          //second type with base 64 encoding
-          this.imageSrc = `data:image/svg+xml;base64,${btoa(this.svg)}`;
-          // extract styles from abse 64
-          this.extractStylesFromSVGBase64();
-
-          //getting computed styles from IMG tag but it returns plain styles not from IMG URL
-          this.extractStylesFromSVG();
-          
-         } catch (error) {
-           console.log('Error loading SVG');
-         }
-       },
+        });
+        console.log(svgElement)
+        
+        this.svgJson = JSON.stringify(animationsArray, null, 2);
+      },
 
        downloadJSON() {
-          const blob = new Blob([this.svgJsonText], { type: 'application/json' });
+          const blob = new Blob([this.svgJson], { type: 'application/json' });
           const link = document.createElement('a');
 
           link.href = URL.createObjectURL(blob);
@@ -82,143 +163,24 @@ export default {
           document.body.removeChild(link);
        },
 
-       //getting computed styles, but we only get plain data, not from URL
-       extractStylesFromSVG() {
-        const svgElement = this.$refs.imageContainer;
-        
-        this.initialStyles = window.getComputedStyle(svgElement);
-        const styleEntries = {};
-        for (let i = 0; i < this.initialStyles.length; i++) {
-          const key = this.initialStyles[i];
-          styleEntries[key] = this.initialStyles.getPropertyValue(key);
-        }
-        this.svgJson = styleEntries;
-        this.svgJsonText = JSON.stringify(computedStyles);
-        
-      },
-
-       // we decode the base 64 image.... and get the inline styles from it
-       extractStylesFromSVGBase64() {
-        
-        // Decode base64 to SVG string
-        const base64Svg = this.imageSrc.split(',')[1]; // Remove the data URL prefix
-        const svgString = decodeBase64(base64Svg);
-        // Modify the SVG content
-        const modifiedSvg = this.modifySvgContent(svgString);
-
-        // Re-encode to base64 and update image source
-        const newBase64Svg = encodeToBase64(modifiedSvg);
-        this.imageSrc = `data:image/svg+xml;base64,${newBase64Svg}`;
-        
-      },
-
-      //extracting the styles from BLOB
-      async fetchAndExtractStylesFromBlobUrl(svgUrl) {
-        try {
-          // Fetch the SVG content
-          const response = await fetch(svgUrl);
-          const svgText = await response.text();
-          
-          // Extract styles from the SVG string
-          this.extractStylesFromSvgString(svgText);
-        } catch (error) {
-          console.error('Error fetching SVG:', error);
-        }
-      },
-
-      //extracting styles from string
-      extractStylesFromSvgString(svgString) {
-        // Create a temporary DOM element to hold the SVG string
-        const parser = new DOMParser();
-        const svgDoc = parser.parseFromString(svgString, 'image/svg+xml');
-        
-        // Find all <style> elements within the SVG
-        const styleElements = svgDoc.querySelectorAll('style');
-        
-        // Extract and parse CSS rules
-        const cssJson = {};
-        
-        styleElements.forEach(style => {
-          const cssText = style.textContent;
-          const rules = this.parseCss(cssText);
-          
-          // Combine all rules into a single JSON object
-          Object.assign(cssJson, rules);
-        });
-        
-        console.log('CSS Rules as JSON:', cssJson);
-      },
-
-      //parsing CSS String.... but it has errors
-      parseCss(cssText) {
-        const cssRules = {};
-  
-        // Split CSS text into rules
-        const ruleBlocks = cssText.split('}').filter(rule => rule.trim());
-        
-        ruleBlocks.forEach(ruleBlock => {
-          const [selectors, rules] = ruleBlock.split('{').map(part => part.trim());
-          
-          if (selectors && rules) {
-            const selectorList = selectors.split(',').map(sel => sel.trim());
-            const ruleList = rules.split(';').filter(rule => rule.trim());
-            
-            ruleList.forEach(rule => {
-              const [property, value] = rule.split(':').map(part => part.trim());
+       modifySVGAnimations() {
+          // Access all text elements
+          const textElements = this.svg.querySelectorAll('text');
+          textElements.forEach(textElement => {
+              // Get animations for each text element
+              const animations = textElement.getAnimations();
               
-              if (property && value) {
-                selectorList.forEach(selector => {
-                  if (!cssRules[selector]) {
-                    cssRules[selector] = {};
-                  }
-                  cssRules[selector][property] = value;
-                });
-              }
-            });
-          }
-        });
-        
-        return cssRules;
-      },
-
-      //trying to modify parameters, temporarly for backup
-       modifySvgContent(svgString) {
-        const parser = new DOMParser();
-        const svgDoc = parser.parseFromString(svgString, 'image/svg+xml');
-        const svgElement = svgDoc.documentElement;
-        const test = window.getComputedStyle(svgElement);
-        const styleEntries = {};
-        for (let i = 0; i < test.length; i++) {
-          const key = this.initialStyles[i];
-          styleEntries[key] = this.initialStyles.getPropertyValue(key);
-        }
-        console.log(styleEntries);
-        // Modify SVG elements
-        const circle = svgElement.querySelector('style');
-        if (circle) {
-          circle.setAttribute('fill', 'blue'); // Change fill color to blue
-        }
-
-        // Serialize the modified SVG
-        const serializer = new XMLSerializer();
-        return serializer.serializeToString(svgElement);
-      },
-
-      //old function kept for backup @TODO: remove
-      applyNewCSS() {
-        const imageContainer = this.$refs.imageContainer;
-        for (let i = 0; i < this.initialStyles.length; i++) {
-          const key = this.initialStyles[i];          
-          imageContainer.style.setProperty(key, this.newJson[key]);
-        }
-        // imageContainer.style.setProperty('fill', 'rgb(89, 50, 59)');
-        // imageContainer.offsetHeight;
-        // requestAnimationFrame(() => {
-        //   let computedStyles = window.getComputedStyle(imageContainer);
-        //   let variable = computedStyles.getPropertyValue('animation-delay');
-        //   console.log(variable);
-        // });
-      },
+              // Log animations
+              console.log(`Animations for <text> element:`, animations);
+              
+              // Modify animation properties if needed
+              animations.forEach(animation => {
+                  // Example: Update the duration of each animation
+                  animation.updatePlaybackRate(0.5); // Change playback rate as an example
+                  // You can also modify other properties like animation delay or direction if needed
+              });
+          });
+        },
 
       //upload JSON
       jsonUpload(event) {
@@ -234,7 +196,6 @@ export default {
                     this.newJson = data;
                     const valid = checkIfValidJSON(this.newJson, this.svgJson);
                     if(valid) {
-                      console.log('apply new css');
                       this.applyNewCSS();
                     } else {
                       alert('Json does not have the same keys')

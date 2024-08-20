@@ -11,7 +11,7 @@ export function checkIfValidJSON(obj1, obj2) {
 }
 
 export function  encodeToBase64(svgString) {
-    return btoa(svgQString);
+    return btoa(svgString);
 }
 
 export function  decodeBase64(base64Str) {
