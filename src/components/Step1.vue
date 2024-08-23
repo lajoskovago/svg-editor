@@ -7,51 +7,82 @@
       accept="image/svg+xml"
       capture
     />
-    <div ref="imageContainer"></div>
+    <div class="svgContainerStyle">
+      <object 
+        id="object"
+        ref="svgObject"
+        v-if="svgFile"
+        v-bind:data="svgFile"
+        @load="onSvgLoaded"
+      ></object>
+    </div>
+    <pre id="animationJson"></pre>
   </div>
   
 </template>
 
 <script>
 const MIME_TYPES = ['image/svg+xml'];
-import { ref } from 'vue';
-import DOMPurify from 'dompurify';
 export default {
     data() {
         return {
-            fileName: '',
-            file: '',
-            svgContent : ref(''),
-            fileContent: ''
+            svgFile: false,
         }
     },
     methods: {
       onFileChanged( event ) {
-         this.file = event.target.files[0];
-         if(this.file) {
-          if (!MIME_TYPES.includes(this.file?.type)) {
-            alert('Please upload an image file.');
-            return;
-         }
-         //web animation API get computed style
-          const reader = new FileReader();
-          reader.onload = (e) => {
-            this.svgContent = DOMPurify.sanitize(e.target.result, { USE_PROFILES: { svg: true, svgFilters: true } });
-            this.changeStep(this.svgContent)
-          };
-          let svgFile = reader.readAsText(this.file);
-         } else {
-            alert('No file');
-            return;
-         }
-         
+        // update the object with the content
+         this.svgFile = URL.createObjectURL(event.target.files[0]);
       },
-      changeStep(svg){
-        this.$emit("nextStep", ["Step2", svg]);
+      onSvgLoaded() {
+        const svgObject = this.$refs.svgObject;
+        const contentDocument = svgObject.contentDocument;
+        // .getAnimations({subtree: true});
+        if (contentDocument) {
+          console.log('SVG contentDocument:', contentDocument);
+          this.extractAnimationsToJson(contentDocument)
+        } else {
+          console.error('Failed to load SVG content');
+        }
       },
-    },
-    mounted() {
-        console.log('Application mounted');
+      extractAnimationsToJson(contentDocument) {
+        const svgElement = contentDocument.querySelector('svg');
+        const animations = svgElement.getAnimations();  // Get all animations associated with the SVG element
+
+        const animationsJson = animations.map(animation => {
+            const effect = animation.effect.getTiming();
+            return {
+                id: animation.id || null,
+                type: animation.constructor.name,  // "CSSAnimation" or "Animation"
+                delay: effect.delay,
+                duration: effect.duration,
+                endDelay: effect.endDelay,
+                iterations: effect.iterations,
+                iterationStart: effect.iterationStart,
+                direction: effect.direction,
+                fill: effect.fill,
+                easing: effect.easing,
+                startTime: animation.startTime,
+                currentTime: animation.currentTime,
+                playbackRate: animation.playbackRate,
+                timeline: animation.timeline ? animation.timeline.constructor.name : null,
+            };
+        });
+        this.displayJson(animationsJson)
+        return animationsJson;
+      },
+
+      displayJson(animationsJson) {
+        const jsonContainer = document.getElementById('animationJson');
+        jsonContainer.textContent = JSON.stringify(animationsJson, null, 2);
+        console.log(JSON.stringify(animationsJson, null, 2))
+      }
     },
 }
 </script>
+<style scoped>
+.svgContainerStyle {
+  height: 500px;
+  width: 500px;
+}
+</style>

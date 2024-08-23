@@ -37,82 +37,105 @@ export default {
     },
     methods: {
       async loadSVG() {
-            // SVG data as a data URI
-            const objectData = 'data:image/svg+xml;charset=utf8,' + encodeURIComponent(this.svg);
+        // SVG data as a data URI
+        // const objectData = 'data:image/svg+xml;charset=utf8,' + encodeURIComponent(this.svg);
+        // get ID with fallbck case
+        const objectData = this.svg;
+        
+        // Create the <object> element
+        const objectElement = document.createElement('object');
+        objectElement.id = 'test-object';
+        objectElement.type = 'image/svg+xml';
+        objectElement.data = objectData;
+        
+        // Append the <object> to the container
+        this.$refs.objectContainer.appendChild(objectElement);
+        await this.waitForElement('#test-object');
+        /// const svgElement = container.querySelector('svg');
 
-            // Create the <object> element
-            const objectElement = document.createElement('object');
-            objectElement.id = 'test-object';
-            objectElement.type = 'image/svg+xml';
-            objectElement.data = objectData;
-            
-            // Append the <object> to the container
-            this.$refs.objectContainer.appendChild(objectElement);
-            // objectElement.onload = function() {
-            //   const SVGObject = document.getElementById('test-object')
-            //   const SVGDocument = SVGObject.contentDocument;
-            //   console.log(SVGDocument)
-            //   console.log('beeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee')
-            // }
+  //       const testContainer = document.getElementById('test-object');
+  //       // testContainer.innerHTML = this.svg;
+  //       console.log(testContainer.contentDocument)
+  //       const svgElement2 = testContainer.querySelector('svg');
+  // // content docuyment always empty
 
-            objectElement.addEventListener('load', function() {
-                // Access the SVG document within the object
-                const svgDoc = objectElement.contentDocument;
-                console.log(svgDoc)
-                // Access an element inside the SVG (for example, a rectangle)
-            });
-            
+  //       if (svgElement2) {
+  //         this.extractAndModifyAnimations(svgElement2);
+  //       } else {
+  //         console.log('SVG element not found in container.');
+  //       }
 
+        //test the animation on it after loaded
+        // animate test object
+        const element = document.getElementById('test-object');
 
-            const element = document.getElementById('test-object');
-            // Modify animations using Web Animations API
-            element.animate([
-              {
-                transform: 'translateY(0)',
-                backgroundColor: 'red'
-              },
-              {
-                transform: 'translateY(450px)',
-                backgroundColor: 'blue'
-              }],
-              {
-                duration: 1000,
-                iterations: Infinity,
-                direction: 'alternate'
-              }  
-            )
-
-
-      // Access and log SVG content
-      // Create a container to hold the SVG
-      const container = document.getElementById('svgContainer');
-      container.innerHTML = this.svg;
-      const svgElement = container.querySelector('svg');
-// content docuyment always empty
+        //this only applies for the Object itself
+        // Modify animations using Web Animations API
+        // element.animate([
+        //   {
+        //     transform: 'translateY(0)',
+        //     // backgroundColor: 'red'
+        //   },
+        //   {
+        //     transform: 'translateY(450px)',
+        //   }],
+        //   {
+        //     duration: 1000,
+        //     iterations: Infinity,
+        //     direction: 'alternate'
+        //   }  
+        // )
 
 
-                  document.getAnimations().forEach((animation) => {
-  // animation.playbackRate *= 100;
-});
-      if (svgElement) {
-        this.extractAndModifyAnimations(svgElement);
-      } else {
-        console.log('SVG element not found in container.');
-      }
+        // Access and log SVG content
+        // Create a container to hold the SVG
+        const container = document.getElementById('svgContainer');
+        container.innerHTML = this.svg;
+        const svgElement = container.querySelector('svg');
+  // content docuyment always empty
+
+        if (svgElement) {
+          this.extractAndModifyAnimations(svgElement);
+        } else {
+          console.log('SVG element not found in container.');
+        }
+      },
+
+      waitForElement(selector, timeout = 5000) {
+        return new Promise((resolve, reject) => {
+          const start = Date.now();
+          const checkElement = () => {
+            const element = document.querySelector(selector);
+
+            if (element) {
+              resolve(element);
+            } else if (Date.now() - start > timeout) {
+              reject(new Error('Timeout: Element not found'));
+            } else {
+              requestAnimationFrame(checkElement);
+            }
+          };
+          checkElement();
+        });
       },
 
       extractAndModifyAnimations(svgElement) {
-        // const svgElement = document.getElementById('SVGElement');
         const animatedElements = svgElement.querySelectorAll('*');
+        debugger;
         if (animatedElements.length === 0) {
           console.log('No animated elements found.');
         }
+        console.log(animatedElements)
+        const svgDoc = svgElement.contentDocument;
+        console.log(svgDoc)
         //////// const svgDoc = objectElement.contentDocument; ALWAYS EMPTYH
         const animationsArray = [];
-
+        let height = 450;
+        let elementCount = 0;
         animatedElements.forEach(element => {
           const animations = element.getAnimations();
-          animations.forEach(animation => {
+          console.log(animations)
+          animations.forEach((animation) => {
             animationsArray.push({
               element: element.tagName,
               animation: {
@@ -128,13 +151,17 @@ export default {
                 currentTime: animation.currentTime
               }
             });
+            height = height - 100;
+            elementCount++;
+            // console.log('element count:' + elementCount)
+            // console.log('element height set for animations:' + height)
             element.animate([
               {
                 transform: 'translateY(0)',
-                backgroundColor: 'red'
+                backgroundColor: 'gray'
               },
               {
-                transform: 'translateY(450px)',
+                transform: 'translateY('+height+'px)',
                 backgroundColor: 'blue'
               }],
               {
@@ -146,7 +173,6 @@ export default {
             
           });
         });
-        console.log(svgElement)
         
         this.svgJson = JSON.stringify(animationsArray, null, 2);
       },
@@ -163,24 +189,6 @@ export default {
           document.body.removeChild(link);
        },
 
-       modifySVGAnimations() {
-          // Access all text elements
-          const textElements = this.svg.querySelectorAll('text');
-          textElements.forEach(textElement => {
-              // Get animations for each text element
-              const animations = textElement.getAnimations();
-              
-              // Log animations
-              console.log(`Animations for <text> element:`, animations);
-              
-              // Modify animation properties if needed
-              animations.forEach(animation => {
-                  // Example: Update the duration of each animation
-                  animation.updatePlaybackRate(0.5); // Change playback rate as an example
-                  // You can also modify other properties like animation delay or direction if needed
-              });
-          });
-        },
 
       //upload JSON
       jsonUpload(event) {
