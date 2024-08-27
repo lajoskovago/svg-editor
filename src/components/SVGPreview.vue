@@ -85,9 +85,12 @@ export default {
       extractAnimationsToJson(svgObject) {
         // extract animations
         const animations = svgObject.contentWindow.document.getAnimations({subtree: true});
+        //we must use counter to be sure all are unique
+        let counter = 0;
         const animationsJsonObject = animations.reduce((accumulator, animation) => {
+          counter++;
           // set a key to be easier to identify
-          const key = animation.effect.target.tagName + '-' + animation.effect.target.textContent;
+          const key = animation.effect.target.tagName + '-' + animation.effect.target.textContent + '-' + counter;
           // get also keyframes
           const keyFrames = animation.effect.getKeyframes();
 
@@ -160,13 +163,14 @@ export default {
         const svgObject = this.$refs.svgObject;
         //because could not find any id for any of the items from wavy, we iterate trough each to find them and change its animation
         const animations = svgObject.contentWindow.document.getAnimations({subtree: true});
-        
+        //we must use counter to be sure all are unique
+        let counter = 0;
         animations.forEach(animation => {
+          counter++;
           // we find the new aniamtion that will be required
-          const key = animation.effect.target.tagName + '-' + animation.effect.target.textContent;
-          // get element so we can change the aniamtion
+          const key = animation.effect.target.tagName + '-' + animation.effect.target.textContent + '-' + counter;
+          // get element so we can change the animation
           const element = animation.effect.target;
-          console.log(this.newJson[key]);
           try {
             element.animate(this.newJson[key]['keyFrames'], {
               duration: 1000, // Set duration or use animationData's duration
